@@ -17,6 +17,7 @@ export interface CardData {
   title: string;
   titleColor: string;
   links: LinkItem[];
+  zIndex: number;
 }
 
 interface DialogState {
@@ -33,6 +34,7 @@ interface Props {
   onUpdate: (id: string, updates: Partial<CardData>) => void;
   onRemove: (id: string) => void;
   onMoveLink: (fromCardId: string, toCardId: string, linkId: string, toIndex: number) => void;
+  onBringToFront: (id: string) => void;
 }
 
 const PALETTE = [
@@ -47,7 +49,7 @@ const EMPTY_DIALOG: DialogState = {
   open: false, mode: "add", editId: null, title: "", url: "", urlError: "",
 };
 
-export default function DraggableCard({ card, onUpdate, onRemove, onMoveLink }: Props) {
+export default function DraggableCard({ card, onUpdate, onRemove, onMoveLink, onBringToFront }: Props) {
   const uid = useId();
   const [editingTitle, setEditingTitle] = useState(false);
   const [showPalette, setShowPalette] = useState(false);
@@ -64,6 +66,7 @@ export default function DraggableCard({ card, onUpdate, onRemove, onMoveLink }: 
   const onCardMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
     if ((e.target as HTMLElement).closest("button, a, input, textarea, [data-nodrag]")) return;
     e.preventDefault();
+    onBringToFront(card.id);
     cardDragOffset.current = { x: e.clientX - card.x, y: e.clientY - card.y };
 
     const onMove = (ev: MouseEvent) => {
@@ -84,6 +87,7 @@ export default function DraggableCard({ card, onUpdate, onRemove, onMoveLink }: 
   const onResizeMouseDown = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
+    onBringToFront(card.id);
     resizeStart.current = { mouseX: e.clientX, mouseY: e.clientY, width: card.width, height: card.height };
 
     const onMove = (ev: MouseEvent) => {
@@ -195,7 +199,7 @@ export default function DraggableCard({ card, onUpdate, onRemove, onMoveLink }: 
   return (
     <>
       <div
-        style={{ left: card.x, top: card.y, width: card.width, height: card.height }}
+        style={{ left: card.x, top: card.y, width: card.width, height: card.height, zIndex: card.zIndex }}
         className="absolute flex flex-col bg-white rounded-xl shadow-lg border border-gray-200 select-none overflow-hidden"
         onMouseDown={onCardMouseDown}
       >

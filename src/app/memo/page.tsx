@@ -1,13 +1,15 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import Link from "next/link";
 import DraggableCard, { CardData } from "@/components/DraggableCard";
 
 export default function MemoPage() {
   const [cards, setCards] = useState<CardData[]>([]);
+  const zCounter = useRef(1);
 
   const addCard = useCallback(() => {
+    const zIndex = ++zCounter.current;
     setCards(prev => [...prev, {
       id: crypto.randomUUID(),
       x: 80 + Math.random() * 200,
@@ -17,6 +19,7 @@ export default function MemoPage() {
       title: "メモ",
       titleColor: "#f3f4f6",
       links: [],
+      zIndex,
     }]);
   }, []);
 
@@ -26,6 +29,11 @@ export default function MemoPage() {
 
   const removeCard = useCallback((id: string) => {
     setCards(prev => prev.filter(c => c.id !== id));
+  }, []);
+
+  const bringToFront = useCallback((id: string) => {
+    const zIndex = ++zCounter.current;
+    setCards(prev => prev.map(c => c.id === id ? { ...c, zIndex } : c));
   }, []);
 
   const moveLink = useCallback((fromCardId: string, toCardId: string, linkId: string, toIndex: number) => {
@@ -73,6 +81,7 @@ export default function MemoPage() {
             onUpdate={updateCard}
             onRemove={removeCard}
             onMoveLink={moveLink}
+            onBringToFront={bringToFront}
           />
         ))}
       </div>

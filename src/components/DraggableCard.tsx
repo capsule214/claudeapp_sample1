@@ -1,6 +1,14 @@
 "use client";
 
 import { useState, useRef, useId } from "react";
+import {
+  PencilIcon,
+  DocumentDuplicateIcon,
+  TrashIcon,
+  PlusIcon,
+  LinkIcon,
+  XMarkIcon,
+} from "@heroicons/react/24/outline";
 
 export interface LinkItem {
   id: string;
@@ -33,6 +41,7 @@ interface Props {
   card: CardData;
   onUpdate: (id: string, updates: Partial<CardData>) => void;
   onRemove: (id: string) => void;
+  onCopy: (id: string) => void;
   onMoveLink: (fromCardId: string, toCardId: string, linkId: string, toIndex: number) => void;
   onBringToFront: (id: string) => void;
 }
@@ -49,10 +58,12 @@ const EMPTY_DIALOG: DialogState = {
   open: false, mode: "add", editId: null, title: "", url: "", urlError: "",
 };
 
-export default function DraggableCard({ card, onUpdate, onRemove, onMoveLink, onBringToFront }: Props) {
+export default function DraggableCard({ card, onUpdate, onRemove, onCopy, onMoveLink, onBringToFront }: Props) {
   const uid = useId();
   const [editingTitle, setEditingTitle] = useState(false);
   const [showPalette, setShowPalette] = useState(false);
+  const [palettePos, setPalettePos] = useState({ top: 0, left: 0 });
+  const paletteButtonRef = useRef<HTMLButtonElement>(null);
   const [dialog, setDialog] = useState<DialogState>(EMPTY_DIALOG);
   const [draggingLinkIdx, setDraggingLinkIdx] = useState<number | null>(null);
   const [dragOverLinkIdx, setDragOverLinkIdx] = useState<number | null>(null);
@@ -69,10 +80,11 @@ export default function DraggableCard({ card, onUpdate, onRemove, onMoveLink, on
     onBringToFront(card.id);
     cardDragOffset.current = { x: e.clientX - card.x, y: e.clientY - card.y };
 
+    const snap = (v: number) => Math.round(v / 10) * 10;
     const onMove = (ev: MouseEvent) => {
       onUpdate(card.id, {
-        x: ev.clientX - cardDragOffset.current.x,
-        y: ev.clientY - cardDragOffset.current.y,
+        x: snap(ev.clientX - cardDragOffset.current.x),
+        y: snap(ev.clientY - cardDragOffset.current.y),
       });
     };
     const onUp = () => {
@@ -209,33 +221,21 @@ export default function DraggableCard({ card, onUpdate, onRemove, onMoveLink, on
           style={{ backgroundColor: card.titleColor }}
         >
           {/* カラーパレット */}
-          <div className="relative flex-shrink-0" data-nodrag="">
+          <div className="flex-shrink-0" data-nodrag="">
             <button
-              onClick={() => setShowPalette(v => !v)}
+              ref={paletteButtonRef}
+              onClick={() => {
+                if (!showPalette && paletteButtonRef.current) {
+                  const r = paletteButtonRef.current.getBoundingClientRect();
+                  setPalettePos({ top: r.bottom + 6, left: r.left });
+                }
+                setShowPalette(v => !v);
+              }}
               onMouseDown={e => e.stopPropagation()}
               className="w-3.5 h-3.5 rounded-full border border-black/20 hover:scale-125 transition-transform"
               style={{ backgroundColor: card.titleColor }}
               title="色を変更"
             />
-            {showPalette && (
-              <div
-                className="absolute top-6 left-0 z-30 bg-white rounded-lg shadow-xl border border-gray-200 p-2 grid grid-cols-3 gap-1.5"
-                onMouseDown={e => e.stopPropagation()}
-              >
-                {PALETTE.map(color => (
-                  <button
-                    key={color}
-                    onClick={() => { onUpdate(card.id, { titleColor: color }); setShowPalette(false); }}
-                    className="w-6 h-6 rounded-full border-2 hover:scale-110 transition-transform"
-                    style={{
-                      backgroundColor: color,
-                      borderColor: card.titleColor === color ? "#3b82f6" : "#d1d5db",
-                    }}
-                    title={color}
-                  />
-                ))}
-              </div>
-            )}
           </div>
 
           {/* タイトル */}
@@ -259,14 +259,25 @@ export default function DraggableCard({ card, onUpdate, onRemove, onMoveLink, on
           )}
           <button
             onClick={() => setEditingTitle(v => !v)}
-            className="text-gray-500 hover:text-blue-500 text-xs flex-shrink-0"
+            className="text-gray-500 hover:text-blue-500 flex-shrink-0"
             title="タイトルを編集"
-          >✎</button>
+          >
+            <PencilIcon className="w-3.5 h-3.5" />
+          </button>
+          <button
+            onClick={() => onCopy(card.id)}
+            className="text-gray-500 hover:text-green-500 flex-shrink-0"
+            title="カードをコピー"
+          >
+            <DocumentDuplicateIcon className="w-3.5 h-3.5" />
+          </button>
           <button
             onClick={() => onRemove(card.id)}
-            className="text-gray-500 hover:text-red-400 text-xs leading-none flex-shrink-0"
+            className="text-gray-500 hover:text-red-400 flex-shrink-0"
             title="カードを削除"
-          >✕</button>
+          >
+            <TrashIcon className="w-3.5 h-3.5" />
+          </button>
         </div>
 
         {/* リンクリスト */}
@@ -301,10 +312,10 @@ export default function DraggableCard({ card, onUpdate, onRemove, onMoveLink, on
                     : "",
                 ].join(" ")}
               >
-                <span
-                  className="text-gray-300 cursor-grab hover:text-gray-500 text-xs flex-shrink-0"
+                <LinkIcon
+                  className="w-3 h-3 text-gray-300 cursor-grab hover:text-gray-500 flex-shrink-0"
                   title="ドラッグで移動・並び替え"
-                >⠿</span>
+                />
                 <a
                   href={link.url}
                   target="_blank"
@@ -316,14 +327,18 @@ export default function DraggableCard({ card, onUpdate, onRemove, onMoveLink, on
                 </a>
                 <button
                   onClick={() => setDialog({ open: true, mode: "edit", editId: link.id, title: link.title, url: link.url, urlError: "" })}
-                  className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-blue-500 text-xs flex-shrink-0 transition-opacity"
+                  className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-blue-500 flex-shrink-0 transition-opacity"
                   title="編集"
-                >✎</button>
+                >
+                  <PencilIcon className="w-3 h-3" />
+                </button>
                 <button
                   onClick={() => onUpdate(card.id, { links: card.links.filter(l => l.id !== link.id) })}
-                  className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-400 text-xs flex-shrink-0 transition-opacity"
+                  className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-400 flex-shrink-0 transition-opacity"
                   title="削除"
-                >✕</button>
+                >
+                  <XMarkIcon className="w-3 h-3" />
+                </button>
               </div>
             ))
           )}
@@ -335,7 +350,7 @@ export default function DraggableCard({ card, onUpdate, onRemove, onMoveLink, on
             onClick={() => setDialog({ ...EMPTY_DIALOG, open: true })}
             className="flex items-center gap-1 text-xs bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded transition-colors"
           >
-            <span className="text-sm leading-none">＋</span> リンク追加
+            <PlusIcon className="w-3.5 h-3.5" /> リンク追加
           </button>
         </div>
 
@@ -350,6 +365,31 @@ export default function DraggableCard({ card, onUpdate, onRemove, onMoveLink, on
           </svg>
         </div>
       </div>
+
+      {/* カラーパレットポップアップ */}
+      {showPalette && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setShowPalette(false)} />
+          <div
+            className="fixed z-50 bg-white rounded-lg shadow-xl border border-gray-200 p-1.5 grid grid-cols-3 gap-1"
+            style={{ top: palettePos.top, left: palettePos.left }}
+            onMouseDown={e => e.stopPropagation()}
+          >
+            {PALETTE.map(color => (
+              <button
+                key={color}
+                onClick={() => { onUpdate(card.id, { titleColor: color }); setShowPalette(false); }}
+                className="w-7 h-7 rounded border-2 hover:scale-105 transition-transform"
+                style={{
+                  backgroundColor: color,
+                  borderColor: card.titleColor === color ? "#3b82f6" : "#d1d5db",
+                }}
+                title={color}
+              />
+            ))}
+          </div>
+        </>
+      )}
 
       {/* 追加・編集ダイアログ */}
       {dialog.open && (
@@ -395,8 +435,8 @@ export default function DraggableCard({ card, onUpdate, onRemove, onMoveLink, on
               </div>
             </div>
             <div className="flex justify-end gap-2">
-              <button onClick={closeDialog} className="text-sm px-3 py-1.5 rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors">
-                キャンセル
+              <button onClick={closeDialog} className="flex items-center gap-1 text-sm px-3 py-1.5 rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors">
+                <XMarkIcon className="w-3.5 h-3.5" /> キャンセル
               </button>
               <button onClick={handleDialogSubmit} className="text-sm px-3 py-1.5 rounded-lg bg-blue-500 hover:bg-blue-600 text-white transition-colors">
                 {dialog.mode === "add" ? "追加" : "保存"}

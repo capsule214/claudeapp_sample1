@@ -1,71 +1,125 @@
-import Database from "better-sqlite3";
+import {
+  Sequelize, DataTypes, Model,
+  InferAttributes, InferCreationAttributes, CreationOptional, NonAttribute,
+} from "sequelize";
 import path from "path";
 
 const DB_PATH = path.join(process.cwd(), "memo.db");
 
-let db: Database.Database | null = null;
+export const sequelize = new Sequelize({
+  dialect: "sqlite",
+  storage: DB_PATH,
+  logging: false,
+});
 
-export function getDb(): Database.Database {
-  if (!db) {
-    db = new Database(DB_PATH);
-    db.pragma("journal_mode = WAL");
-    initSchema(db);
-  }
-  return db;
+// ---- Card ----
+export class Card extends Model<InferAttributes<Card>, InferCreationAttributes<Card>> {
+  declare id: string;
+  declare x: number;
+  declare y: number;
+  declare width: number;
+  declare height: number;
+  declare title: string;
+  declare titleColor: string;
+  declare zIndex: number;
+  declare links?: NonAttribute<Link[]>;
 }
 
-function initSchema(db: Database.Database) {
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS cards (
-      id TEXT PRIMARY KEY,
-      x REAL NOT NULL,
-      y REAL NOT NULL,
-      width REAL NOT NULL,
-      height REAL NOT NULL,
-      title TEXT NOT NULL,
-      title_color TEXT NOT NULL,
-      z_index INTEGER NOT NULL,
-      created_at INTEGER NOT NULL DEFAULT (unixepoch())
-    );
+Card.init(
+  {
+    id: { type: DataTypes.STRING, primaryKey: true },
+    x: DataTypes.FLOAT,
+    y: DataTypes.FLOAT,
+    width: DataTypes.FLOAT,
+    height: DataTypes.FLOAT,
+    title: DataTypes.STRING,
+    titleColor: { type: DataTypes.STRING, field: "title_color" },
+    zIndex: { type: DataTypes.INTEGER, field: "z_index" },
+  },
+  { sequelize, tableName: "cards", timestamps: false }
+);
 
-    CREATE TABLE IF NOT EXISTS links (
-      id TEXT PRIMARY KEY,
-      card_id TEXT NOT NULL REFERENCES cards(id) ON DELETE CASCADE,
-      title TEXT NOT NULL,
-      url TEXT NOT NULL,
-      sort_order INTEGER NOT NULL DEFAULT 0
-    );
+// ---- Link ----
+export class Link extends Model<InferAttributes<Link>, InferCreationAttributes<Link>> {
+  declare id: string;
+  declare cardId: string;
+  declare title: string;
+  declare url: string;
+  declare sortOrder: number;
+}
 
-    CREATE TABLE IF NOT EXISTS images (
-      id TEXT PRIMARY KEY,
-      x REAL NOT NULL,
-      y REAL NOT NULL,
-      width REAL NOT NULL,
-      height REAL NOT NULL,
-      z_index INTEGER NOT NULL,
-      url TEXT NOT NULL DEFAULT '',
-      mime_type TEXT NOT NULL DEFAULT '',
-      data BLOB,
-      created_at INTEGER NOT NULL DEFAULT (unixepoch())
-    );
+Link.init(
+  {
+    id: { type: DataTypes.STRING, primaryKey: true },
+    cardId: { type: DataTypes.STRING, field: "card_id" },
+    title: DataTypes.STRING,
+    url: DataTypes.STRING,
+    sortOrder: { type: DataTypes.INTEGER, field: "sort_order" },
+  },
+  { sequelize, tableName: "links", timestamps: false }
+);
 
-    CREATE TABLE IF NOT EXISTS rich_texts (
-      id TEXT PRIMARY KEY,
-      x REAL NOT NULL,
-      y REAL NOT NULL,
-      width REAL NOT NULL,
-      height REAL NOT NULL,
-      z_index INTEGER NOT NULL,
-      content TEXT NOT NULL DEFAULT '',
-      created_at INTEGER NOT NULL DEFAULT (unixepoch())
-    );
-  `);
+Card.hasMany(Link, { foreignKey: "cardId", as: "links" });
+Link.belongsTo(Card, { foreignKey: "cardId" });
 
-  // 既存テーブルへのカラム追加（初回のみ実行、以降は無視）
-  for (const sql of [
-    "ALTER TABLE images ADD COLUMN mime_type TEXT NOT NULL DEFAULT ''",
-    "ALTER TABLE images ADD COLUMN data BLOB",
-  ]) {
-    try { db.exec(sql); } catch { /* already exists */ }
+// ---- Image ----
+export class Image extends Model<InferAttributes<Image>, InferCreationAttributes<Image>> {
+  declare id: string;
+  declare x: number;
+  declare y: number;
+  declare width: number;
+  declare height: number;
+  declare zIndex: number;
+  declare url: CreationOptional<string>;
+  declare mimeType: CreationOptional<string>;
+  declare data: CreationOptional<Buffer | null>;
+}
+
+Image.init(
+  {
+    id: { type: DataTypes.STRING, primaryKey: true },
+    x: DataTypes.FLOAT,
+    y: DataTypes.FLOAT,
+    width: DataTypes.FLOAT,
+    height: DataTypes.FLOAT,
+    zIndex: { type: DataTypes.INTEGER, field: "z_index" },
+    url: { type: DataTypes.STRING, defaultValue: "" },
+    mimeType: { type: DataTypes.STRING, field: "mime_type", defaultValue: "" },
+    data: { type: DataTypes.BLOB, allowNull: true },
+  },
+  { sequelize, tableName: "images", timestamps: false }
+);
+
+// ---- RichText ----
+export class RichText extends Model<InferAttributes<RichText>, InferCreationAttributes<RichText>> {
+  declare id: string;
+  declare x: number;
+  declare y: number;
+  declare width: number;
+  declare height: number;
+  declare zIndex: number;
+  declare content: CreationOptional<string>;
+}
+
+RichText.init(
+  {
+    id: { type: DataTypes.STRING, primaryKey: true },
+    x: DataTypes.FLOAT,
+    y: DataTypes.FLOAT,
+    width: DataTypes.FLOAT,
+    height: DataTypes.FLOAT,
+    zIndex: { type: DataTypes.INTEGER, field: "z_index" },
+    content: { type: DataTypes.TEXT, defaultValue: "" },
+  },
+  { sequelize, tableName: "rich_texts", timestamps: false }
+);
+
+// ---- 初期化 ----
+declare global { var _seqSynced: boolean | undefined; }
+
+export async function ensureSync() {
+  if (!global._seqSynced) {
+    await sequelize.sync();
+    global._seqSynced = true;
   }
 }

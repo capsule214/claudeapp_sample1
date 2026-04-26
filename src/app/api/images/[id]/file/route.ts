@@ -1,21 +1,19 @@
-import { getDb } from "@/lib/db";
+import { Image, ensureSync } from "@/lib/db";
 
 export async function GET(
   _request: Request,
   ctx: RouteContext<"/api/images/[id]/file">
 ) {
+  await ensureSync();
   const { id } = await ctx.params;
-  const db = getDb();
 
-  const row = db
-    .prepare("SELECT data, mime_type FROM images WHERE id=?")
-    .get(id) as { data: Buffer; mime_type: string } | undefined;
+  const image = await Image.findByPk(id, { attributes: ["data", "mimeType"] });
 
-  if (!row?.data) return new Response("Not Found", { status: 404 });
+  if (!image?.data) return new Response("Not Found", { status: 404 });
 
-  return new Response(new Uint8Array(row.data), {
+  return new Response(new Uint8Array(image.data), {
     headers: {
-      "Content-Type": row.mime_type || "application/octet-stream",
+      "Content-Type": image.mimeType || "application/octet-stream",
       "Cache-Control": "public, max-age=31536000, immutable",
     },
   });

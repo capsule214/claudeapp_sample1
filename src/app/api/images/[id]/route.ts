@@ -1,16 +1,19 @@
-import { getDb } from "@/lib/db";
+import { Image, ensureSync } from "@/lib/db";
 import { ImageData } from "@/components/DraggableImage";
 
 export async function PUT(
   request: Request,
   ctx: RouteContext<"/api/images/[id]">
 ) {
+  await ensureSync();
   const { id } = await ctx.params;
   const img: ImageData = await request.json();
-  const db = getDb();
-  db.prepare(
-    `UPDATE images SET x=?, y=?, width=?, height=?, z_index=?, url=? WHERE id=?`
-  ).run(img.x, img.y, img.width, img.height, img.zIndex, img.url, id);
+
+  await Image.update(
+    { x: img.x, y: img.y, width: img.width, height: img.height, zIndex: img.zIndex, url: img.url },
+    { where: { id } }
+  );
+
   return Response.json({ ok: true });
 }
 
@@ -18,7 +21,10 @@ export async function DELETE(
   _request: Request,
   ctx: RouteContext<"/api/images/[id]">
 ) {
+  await ensureSync();
   const { id } = await ctx.params;
-  getDb().prepare("DELETE FROM images WHERE id=?").run(id);
+
+  await Image.destroy({ where: { id } });
+
   return Response.json({ ok: true });
 }

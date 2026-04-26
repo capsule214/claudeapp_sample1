@@ -1,25 +1,37 @@
-import { getDb } from "@/lib/db";
+import { RichText, ensureSync } from "@/lib/db";
 import { RichTextData } from "@/components/DraggableRichText";
 
-interface RichTextRow {
-  id: string; x: number; y: number; width: number; height: number;
-  z_index: number; content: string;
-}
-
 export async function GET() {
-  const db = getDb();
-  const rows = db.prepare("SELECT * FROM rich_texts ORDER BY z_index ASC").all() as RichTextRow[];
-  const data: RichTextData[] = rows.map((r) => ({
-    id: r.id, x: r.x, y: r.y, width: r.width, height: r.height,
-    zIndex: r.z_index, content: r.content,
-  }));
-  return Response.json(data);
+  await ensureSync();
+
+  const rows = await RichText.findAll({ order: [["z_index", "ASC"]] });
+
+  return Response.json(
+    rows.map((r) => ({
+      id: r.id,
+      x: r.x,
+      y: r.y,
+      width: r.width,
+      height: r.height,
+      zIndex: r.zIndex,
+      content: r.content,
+    }))
+  );
 }
 
 export async function POST(request: Request) {
+  await ensureSync();
   const rt: RichTextData = await request.json();
-  getDb().prepare(
-    `INSERT INTO rich_texts (id, x, y, width, height, z_index, content) VALUES (?, ?, ?, ?, ?, ?, ?)`
-  ).run(rt.id, rt.x, rt.y, rt.width, rt.height, rt.zIndex, rt.content);
+
+  await RichText.create({
+    id: rt.id,
+    x: rt.x,
+    y: rt.y,
+    width: rt.width,
+    height: rt.height,
+    zIndex: rt.zIndex,
+    content: rt.content,
+  });
+
   return Response.json({ ok: true }, { status: 201 });
 }

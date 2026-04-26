@@ -58,6 +58,8 @@ const EMPTY_DIALOG: DialogState = {
   open: false, mode: "add", editId: null, title: "", url: "", urlError: "",
 };
 
+const snap = (v: number) => Math.round(v / 10) * 10;
+
 export default function DraggableCard({ card, onUpdate, onRemove, onCopy, onMoveLink, onBringToFront }: Props) {
   const uid = useId();
   const [editingTitle, setEditingTitle] = useState(false);
@@ -73,14 +75,20 @@ export default function DraggableCard({ card, onUpdate, onRemove, onCopy, onMove
   const resizeStart = useRef({ mouseX: 0, mouseY: 0, width: 0, height: 0 });
   const dragSrcIdx = useRef<number | null>(null);
 
-  // ---- カードドラッグ ----
+  const resetDragState = () => {
+    setDraggingLinkIdx(null);
+    setDragOverLinkIdx(null);
+    setExternalDragOver(false);
+    dragSrcIdx.current = null;
+  };
+
+
   const onCardMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
     if ((e.target as HTMLElement).closest("button, a, input, textarea, [data-nodrag]")) return;
     e.preventDefault();
     onBringToFront(card.id);
     cardDragOffset.current = { x: e.clientX - card.x, y: e.clientY - card.y };
 
-    const snap = (v: number) => Math.round(v / 10) * 10;
     const onMove = (ev: MouseEvent) => {
       onUpdate(card.id, {
         x: snap(ev.clientX - cardDragOffset.current.x),
@@ -104,8 +112,8 @@ export default function DraggableCard({ card, onUpdate, onRemove, onCopy, onMove
 
     const onMove = (ev: MouseEvent) => {
       onUpdate(card.id, {
-        width: Math.max(200, resizeStart.current.width + ev.clientX - resizeStart.current.mouseX),
-        height: Math.max(140, resizeStart.current.height + ev.clientY - resizeStart.current.mouseY),
+        width: Math.max(200, snap(resizeStart.current.width + ev.clientX - resizeStart.current.mouseX)),
+        height: Math.max(140, snap(resizeStart.current.height + ev.clientY - resizeStart.current.mouseY)),
       });
     };
     const onUp = () => {
@@ -151,10 +159,7 @@ export default function DraggableCard({ card, onUpdate, onRemove, onCopy, onMove
     } else {
       onMoveLink(sourceCardId, card.id, linkId, toIdx);
     }
-    setDraggingLinkIdx(null);
-    setDragOverLinkIdx(null);
-    setExternalDragOver(false);
-    dragSrcIdx.current = null;
+    resetDragState();
   };
 
   const onListAreaDragOver = (e: React.DragEvent) => {
@@ -173,17 +178,10 @@ export default function DraggableCard({ card, onUpdate, onRemove, onCopy, onMove
     if (sourceCardId !== card.id) {
       onMoveLink(sourceCardId, card.id, linkId, card.links.length);
     }
-    setDraggingLinkIdx(null);
-    setDragOverLinkIdx(null);
-    dragSrcIdx.current = null;
+    resetDragState();
   };
 
-  const onLinkDragEnd = () => {
-    setDraggingLinkIdx(null);
-    setDragOverLinkIdx(null);
-    setExternalDragOver(false);
-    dragSrcIdx.current = null;
-  };
+  const onLinkDragEnd = () => resetDragState();
 
   // ---- ダイアログ ----
   const closeDialog = () => setDialog(EMPTY_DIALOG);
@@ -215,12 +213,10 @@ export default function DraggableCard({ card, onUpdate, onRemove, onCopy, onMove
         className="absolute flex flex-col bg-white rounded-xl shadow-lg border border-gray-200 select-none overflow-hidden"
         onMouseDown={onCardMouseDown}
       >
-        {/* ヘッダー */}
         <div
           className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-t-xl cursor-grab active:cursor-grabbing"
           style={{ backgroundColor: card.titleColor }}
         >
-          {/* カラーパレット */}
           <div className="flex-shrink-0" data-nodrag="">
             <button
               ref={paletteButtonRef}
@@ -238,7 +234,6 @@ export default function DraggableCard({ card, onUpdate, onRemove, onCopy, onMove
             />
           </div>
 
-          {/* タイトル */}
           {editingTitle ? (
             <input
               autoFocus
@@ -280,7 +275,6 @@ export default function DraggableCard({ card, onUpdate, onRemove, onCopy, onMove
           </button>
         </div>
 
-        {/* リンクリスト */}
         <div
           className={[
             "flex-1 overflow-y-auto px-2 py-2 space-y-0.5 min-h-0 transition-colors",
@@ -344,7 +338,6 @@ export default function DraggableCard({ card, onUpdate, onRemove, onCopy, onMove
           )}
         </div>
 
-        {/* フッター */}
         <div className="flex-shrink-0 flex justify-end px-3 py-2 border-t border-gray-100">
           <button
             onClick={() => setDialog({ ...EMPTY_DIALOG, open: true })}
@@ -354,7 +347,6 @@ export default function DraggableCard({ card, onUpdate, onRemove, onCopy, onMove
           </button>
         </div>
 
-        {/* リサイズハンドル */}
         <div
           onMouseDown={onResizeMouseDown}
           className="absolute bottom-0 right-0 w-5 h-5 cursor-se-resize flex items-end justify-end pr-1 pb-1"
@@ -366,7 +358,6 @@ export default function DraggableCard({ card, onUpdate, onRemove, onCopy, onMove
         </div>
       </div>
 
-      {/* カラーパレットポップアップ */}
       {showPalette && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setShowPalette(false)} />
@@ -391,7 +382,6 @@ export default function DraggableCard({ card, onUpdate, onRemove, onCopy, onMove
         </>
       )}
 
-      {/* 追加・編集ダイアログ */}
       {dialog.open && (
         <div
           className="fixed inset-0 bg-black/40 flex items-center justify-center z-50"

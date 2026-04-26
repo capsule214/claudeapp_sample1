@@ -28,7 +28,6 @@ export default function DraggableImage({ image, onUpdate, onRemove, onBringToFro
   const dragOffset = useRef({ x: 0, y: 0 });
   const resizeStart = useRef({ mouseX: 0, mouseY: 0, width: 0, height: 0 });
 
-  // ---- 移動 ----
   const onMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
     if ((e.target as HTMLElement).closest("button, [data-nодrag]")) return;
     e.preventDefault();
@@ -49,7 +48,6 @@ export default function DraggableImage({ image, onUpdate, onRemove, onBringToFro
     window.addEventListener("mouseup", onUp);
   };
 
-  // ---- リサイズ ----
   const onResizeMouseDown = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
@@ -58,8 +56,8 @@ export default function DraggableImage({ image, onUpdate, onRemove, onBringToFro
 
     const onMove = (ev: MouseEvent) => {
       onUpdate(image.id, {
-        width: Math.max(80, resizeStart.current.width + ev.clientX - resizeStart.current.mouseX),
-        height: Math.max(80, resizeStart.current.height + ev.clientY - resizeStart.current.mouseY),
+        width: Math.max(80, snap(resizeStart.current.width + ev.clientX - resizeStart.current.mouseX)),
+        height: Math.max(80, snap(resizeStart.current.height + ev.clientY - resizeStart.current.mouseY)),
       });
     };
     const onUp = () => {
@@ -70,7 +68,6 @@ export default function DraggableImage({ image, onUpdate, onRemove, onBringToFro
     window.addEventListener("mouseup", onUp);
   };
 
-  // ---- ファイルアップロード ----
   const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -114,21 +111,7 @@ export default function DraggableImage({ image, onUpdate, onRemove, onBringToFro
       className="absolute select-none"
       onMouseDown={onMouseDown}
     >
-      {/* コントロールバー */}
-      <div className="absolute -top-7 left-0 right-0 flex items-center justify-between px-1 opacity-0 hover:opacity-100 group-hover:opacity-100 transition-opacity z-10 bg-black/50 rounded-t-md py-0.5 [div:hover_>_&]:opacity-100">
-        <span className="text-white text-xs cursor-grab pl-1">画像</span>
-        <button
-          onClick={() => onRemove(image.id)}
-          className="text-white/70 hover:text-red-400 p-0.5"
-          title="削除"
-        >
-          <TrashIcon className="w-3.5 h-3.5" />
-        </button>
-      </div>
-
-      {/* 本体 */}
       <div className="relative w-full h-full group">
-        {/* コントロールオーバーレイ（画像表示中） */}
         {hasImage && (
           <div className="absolute top-1 right-1 z-10 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
             <button
@@ -142,7 +125,6 @@ export default function DraggableImage({ image, onUpdate, onRemove, onBringToFro
         )}
 
         {hasImage ? (
-          // 画像表示
           <img
             src={image.url}
             alt=""
@@ -150,7 +132,6 @@ export default function DraggableImage({ image, onUpdate, onRemove, onBringToFro
             draggable={false}
           />
         ) : (
-          // ドロップゾーン
           <div
             onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
             onDragLeave={() => setDragOver(false)}
@@ -184,7 +165,6 @@ export default function DraggableImage({ image, onUpdate, onRemove, onBringToFro
           </div>
         )}
 
-        {/* リサイズハンドル */}
         <div
           onMouseDown={onResizeMouseDown}
           className="absolute bottom-0 right-0 w-5 h-5 cursor-se-resize z-20 flex items-end justify-end pr-1 pb-1"

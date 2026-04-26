@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useCallback, ReactNode } from "react";
+import { useRef, useCallback, useEffect, ReactNode } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { TextStyle, Color, FontSize } from "@tiptap/extension-text-style";
@@ -21,7 +21,6 @@ import FormatAlignRightIcon from "@mui/icons-material/FormatAlignRight";
 import TableChartIcon from "@mui/icons-material/TableChart";
 import UndoIcon from "@mui/icons-material/Undo";
 import RedoIcon from "@mui/icons-material/Redo";
-import { useTheme } from "@mui/material";
 
 export interface RichTextData {
   id: string;
@@ -71,8 +70,6 @@ function Sep() {
 }
 
 export default function DraggableRichText({ data, onUpdate, onRemove, onBringToFront }: Props) {
-  const theme = useTheme();
-  const isDark = theme.palette.mode === "dark";
   const dragOffset = useRef({ x: 0, y: 0 });
   const resizeStart = useRef({ mouseX: 0, mouseY: 0, width: 0, height: 0 });
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -81,6 +78,10 @@ export default function DraggableRichText({ data, onUpdate, onRemove, onBringToF
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => onUpdate(data.id, { content }), 600);
   }, [onUpdate, data.id]);
+
+  useEffect(() => () => {
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+  }, []);
 
   const editor = useEditor({
     extensions: [
@@ -125,8 +126,8 @@ export default function DraggableRichText({ data, onUpdate, onRemove, onBringToF
     resizeStart.current = { mouseX: e.clientX, mouseY: e.clientY, width: data.width, height: data.height };
     const onMove = (ev: MouseEvent) => {
       onUpdate(data.id, {
-        width: Math.max(260, resizeStart.current.width + ev.clientX - resizeStart.current.mouseX),
-        height: Math.max(180, resizeStart.current.height + ev.clientY - resizeStart.current.mouseY),
+        width: Math.max(260, snap(resizeStart.current.width + ev.clientX - resizeStart.current.mouseX)),
+        height: Math.max(180, snap(resizeStart.current.height + ev.clientY - resizeStart.current.mouseY)),
       });
     };
     const onUp = () => { window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); };
@@ -148,7 +149,7 @@ export default function DraggableRichText({ data, onUpdate, onRemove, onBringToF
       onMouseDown={onMouseDown}
     >
       {/* ヘッダー */}
-      <div className={`flex-shrink-0 flex items-center gap-1 px-2 py-1.5 cursor-grab active:cursor-grabbing ${isDark ? "bg-gray-800" : "bg-gray-100"} border-b border-gray-200 dark:border-gray-700`}>
+      <div className="flex-shrink-0 flex items-center gap-1 px-2 py-1.5 cursor-grab active:cursor-grabbing bg-gray-100 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
         <span className="text-xs font-medium text-gray-500 dark:text-gray-400 flex-1 truncate">リッチテキスト</span>
         <button
           onClick={() => onRemove(data.id)}
@@ -162,7 +163,7 @@ export default function DraggableRichText({ data, onUpdate, onRemove, onBringToF
       {/* ツールバー */}
       <div
         data-nodrag=""
-        className={`flex-shrink-0 flex items-center gap-0.5 px-1.5 py-1 flex-wrap border-b border-gray-200 dark:border-gray-700 ${isDark ? "bg-gray-800" : "bg-white"}`}
+        className="flex-shrink-0 flex items-center gap-0.5 px-1.5 py-1 flex-wrap border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800"
       >
         {/* 履歴 */}
         <ToolBtn onClick={() => editor.chain().focus().undo().run()} title="元に戻す"><UndoIcon sx={{ fontSize: 15 }} /></ToolBtn>
@@ -278,7 +279,7 @@ export default function DraggableRichText({ data, onUpdate, onRemove, onBringToF
       {/* エディタ本体 */}
       <div
         data-nodrag=""
-        className={`flex-1 overflow-hidden ${isDark ? "bg-gray-900 text-gray-100" : "bg-white text-gray-900"}`}
+        className="flex-1 overflow-hidden bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-100"
         onMouseDown={(e) => e.stopPropagation()}
       >
         <EditorContent editor={editor} style={{ height: "100%" }} />

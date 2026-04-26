@@ -48,6 +48,17 @@ function initSchema(db: Database.Database) {
       data BLOB,
       created_at INTEGER NOT NULL DEFAULT (unixepoch())
     );
+
+    CREATE TABLE IF NOT EXISTS rich_texts (
+      id TEXT PRIMARY KEY,
+      x REAL NOT NULL,
+      y REAL NOT NULL,
+      width REAL NOT NULL,
+      height REAL NOT NULL,
+      z_index INTEGER NOT NULL,
+      content TEXT NOT NULL DEFAULT '',
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
   `);
 
   // 既存テーブルへのカラム追加（初回のみ実行、以降は無視）

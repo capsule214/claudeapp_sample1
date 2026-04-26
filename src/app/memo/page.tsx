@@ -13,16 +13,19 @@ import {
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import AddIcon from "@mui/icons-material/Add";
 import AddPhotoAlternateIcon from "@mui/icons-material/AddPhotoAlternate";
+import TextFieldsIcon from "@mui/icons-material/TextFields";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
 import LightModeIcon from "@mui/icons-material/LightMode";
 import Link from "next/link";
 import DraggableCard, { CardData } from "@/components/DraggableCard";
 import DraggableImage, { ImageData } from "@/components/DraggableImage";
+import DraggableRichText, { RichTextData } from "@/components/DraggableRichText";
 import { useColorMode } from "@/components/AppThemeProvider";
 
 export default function MemoPage() {
   const [cards, setCards] = useState<CardData[]>([]);
   const [images, setImages] = useState<ImageData[]>([]);
+  const [richTexts, setRichTexts] = useState<RichTextData[]>([]);
   const zCounter = useRef(1);
   const { mode, toggle } = useColorMode();
 
@@ -41,6 +44,13 @@ export default function MemoPage() {
       .then((r) => r.json())
       .then((data: ImageData[]) => {
         setImages(data);
+        zCounter.current = Math.max(zCounter.current, maxZ(data));
+      });
+
+    fetch("/api/rich-texts")
+      .then((r) => r.json())
+      .then((data: RichTextData[]) => {
+        setRichTexts(data);
         zCounter.current = Math.max(zCounter.current, maxZ(data));
       });
   }, []);
@@ -192,6 +202,50 @@ export default function MemoPage() {
     [updateImage]
   );
 
+  const addRichText = useCallback(() => {
+    const zIndex = ++zCounter.current;
+    const rt: RichTextData = {
+      id: crypto.randomUUID(),
+      x: 100 + Math.random() * 200,
+      y: 100 + Math.random() * 150,
+      width: 360,
+      height: 260,
+      zIndex,
+      content: "<p></p>",
+    };
+    setRichTexts((prev) => [...prev, rt]);
+    fetch("/api/rich-texts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(rt),
+    });
+  }, []);
+
+  const updateRichText = useCallback((id: string, updates: Partial<RichTextData>) => {
+    setRichTexts((prev) => {
+      const next = prev.map((rt) => (rt.id === id ? { ...rt, ...updates } : rt));
+      const updated = next.find((rt) => rt.id === id);
+      if (updated) {
+        fetch(`/api/rich-texts/${id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(updated),
+        });
+      }
+      return next;
+    });
+  }, []);
+
+  const removeRichText = useCallback((id: string) => {
+    setRichTexts((prev) => prev.filter((rt) => rt.id !== id));
+    fetch(`/api/rich-texts/${id}`, { method: "DELETE" });
+  }, []);
+
+  const bringRichTextToFront = useCallback(
+    (id: string) => updateRichText(id, { zIndex: ++zCounter.current }),
+    [updateRichText]
+  );
+
   return (
     <Box sx={{ width: "100%", minHeight: "100vh", bgcolor: "background.default" }}>
       <AppBar
@@ -215,6 +269,16 @@ export default function MemoPage() {
               {mode === "dark" ? <LightModeIcon fontSize="small" /> : <DarkModeIcon fontSize="small" />}
             </IconButton>
           </Tooltip>
+
+          <Button
+            onClick={addRichText}
+            variant="outlined"
+            size="small"
+            startIcon={<TextFieldsIcon />}
+            sx={{ borderRadius: 9999, fontWeight: 600, px: 2 }}
+          >
+            テキスト
+          </Button>
 
           <Button
             onClick={addImage}
@@ -254,6 +318,15 @@ export default function MemoPage() {
             </Typography>
           </Box>
         )}
+        {richTexts.map((rt) => (
+          <DraggableRichText
+            key={rt.id}
+            data={rt}
+            onUpdate={updateRichText}
+            onRemove={removeRichText}
+            onBringToFront={bringRichTextToFront}
+          />
+        ))}
         {images.map((img) => (
           <DraggableImage
             key={img.id}

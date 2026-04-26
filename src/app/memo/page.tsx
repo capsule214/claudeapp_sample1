@@ -12,24 +12,36 @@ import {
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import AddIcon from "@mui/icons-material/Add";
+import AddPhotoAlternateIcon from "@mui/icons-material/AddPhotoAlternate";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
 import LightModeIcon from "@mui/icons-material/LightMode";
 import Link from "next/link";
 import DraggableCard, { CardData } from "@/components/DraggableCard";
+import DraggableImage, { ImageData } from "@/components/DraggableImage";
 import { useColorMode } from "@/components/AppThemeProvider";
 
 export default function MemoPage() {
   const [cards, setCards] = useState<CardData[]>([]);
+  const [images, setImages] = useState<ImageData[]>([]);
   const zCounter = useRef(1);
   const { mode, toggle } = useColorMode();
 
   useEffect(() => {
+    const maxZ = (arr: { zIndex: number }[]) =>
+      arr.reduce((m, c) => Math.max(m, c.zIndex), 0);
+
     fetch("/api/cards")
       .then((r) => r.json())
       .then((data: CardData[]) => {
         setCards(data);
-        const maxZ = data.reduce((m, c) => Math.max(m, c.zIndex), 0);
-        zCounter.current = maxZ;
+        zCounter.current = Math.max(zCounter.current, maxZ(data));
+      });
+
+    fetch("/api/images")
+      .then((r) => r.json())
+      .then((data: ImageData[]) => {
+        setImages(data);
+        zCounter.current = Math.max(zCounter.current, maxZ(data));
       });
   }, []);
 
@@ -136,6 +148,50 @@ export default function MemoPage() {
     []
   );
 
+  const addImage = useCallback(() => {
+    const zIndex = ++zCounter.current;
+    const img: ImageData = {
+      id: crypto.randomUUID(),
+      x: 100 + Math.random() * 200,
+      y: 100 + Math.random() * 150,
+      width: 200,
+      height: 200,
+      zIndex,
+      url: "",
+    };
+    setImages((prev) => [...prev, img]);
+    fetch("/api/images", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(img),
+    });
+  }, []);
+
+  const updateImage = useCallback((id: string, updates: Partial<ImageData>) => {
+    setImages((prev) => {
+      const next = prev.map((img) => (img.id === id ? { ...img, ...updates } : img));
+      const updated = next.find((img) => img.id === id);
+      if (updated) {
+        fetch(`/api/images/${id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(updated),
+        });
+      }
+      return next;
+    });
+  }, []);
+
+  const removeImage = useCallback((id: string) => {
+    setImages((prev) => prev.filter((img) => img.id !== id));
+    fetch(`/api/images/${id}`, { method: "DELETE" });
+  }, []);
+
+  const bringImageToFront = useCallback(
+    (id: string) => updateImage(id, { zIndex: ++zCounter.current }),
+    [updateImage]
+  );
+
   return (
     <Box sx={{ width: "100%", minHeight: "100vh", bgcolor: "background.default" }}>
       <AppBar
@@ -159,6 +215,16 @@ export default function MemoPage() {
               {mode === "dark" ? <LightModeIcon fontSize="small" /> : <DarkModeIcon fontSize="small" />}
             </IconButton>
           </Tooltip>
+
+          <Button
+            onClick={addImage}
+            variant="outlined"
+            size="small"
+            startIcon={<AddPhotoAlternateIcon />}
+            sx={{ borderRadius: 9999, fontWeight: 600, px: 2 }}
+          >
+            画像
+          </Button>
 
           <Button
             onClick={addCard}
@@ -188,6 +254,15 @@ export default function MemoPage() {
             </Typography>
           </Box>
         )}
+        {images.map((img) => (
+          <DraggableImage
+            key={img.id}
+            image={img}
+            onUpdate={updateImage}
+            onRemove={removeImage}
+            onBringToFront={bringImageToFront}
+          />
+        ))}
         {cards.map((card) => (
           <DraggableCard
             key={card.id}

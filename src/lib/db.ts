@@ -35,5 +35,26 @@ function initSchema(db: Database.Database) {
       url TEXT NOT NULL,
       sort_order INTEGER NOT NULL DEFAULT 0
     );
+
+    CREATE TABLE IF NOT EXISTS images (
+      id TEXT PRIMARY KEY,
+      x REAL NOT NULL,
+      y REAL NOT NULL,
+      width REAL NOT NULL,
+      height REAL NOT NULL,
+      z_index INTEGER NOT NULL,
+      url TEXT NOT NULL DEFAULT '',
+      mime_type TEXT NOT NULL DEFAULT '',
+      data BLOB,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
   `);
+
+  // 既存テーブルへのカラム追加（初回のみ実行、以降は無視）
+  for (const sql of [
+    "ALTER TABLE images ADD COLUMN mime_type TEXT NOT NULL DEFAULT ''",
+    "ALTER TABLE images ADD COLUMN data BLOB",
+  ]) {
+    try { db.exec(sql); } catch { /* already exists */ }
+  }
 }

@@ -150,13 +150,13 @@ export default function DraggableRichText({ data, onUpdate, onRemove, onBringToF
     >
       {/* ヘッダー */}
       <div className="flex-shrink-0 flex items-center gap-1 px-2 py-1.5 cursor-grab active:cursor-grabbing bg-gray-100 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-        <span className="text-xs font-medium text-gray-500 dark:text-gray-400 flex-1 truncate">リッチテキスト</span>
+        <span className="text-sm font-medium text-gray-500 dark:text-gray-400 flex-1 truncate">リッチテキスト</span>
         <button
           onClick={() => onRemove(data.id)}
           className="text-gray-400 hover:text-red-500 flex-shrink-0"
           title="削除"
         >
-          <TrashIcon className="w-3.5 h-3.5" />
+          <TrashIcon className="w-4 h-4" />
         </button>
       </div>
 
@@ -166,23 +166,23 @@ export default function DraggableRichText({ data, onUpdate, onRemove, onBringToF
         className="flex-shrink-0 flex items-center gap-0.5 px-1.5 py-1 flex-wrap border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800"
       >
         {/* 履歴 */}
-        <ToolBtn onClick={() => editor.chain().focus().undo().run()} title="元に戻す"><UndoIcon sx={{ fontSize: 15 }} /></ToolBtn>
-        <ToolBtn onClick={() => editor.chain().focus().redo().run()} title="やり直し"><RedoIcon sx={{ fontSize: 15 }} /></ToolBtn>
+        <ToolBtn onClick={() => editor.chain().focus().undo().run()} title="元に戻す"><UndoIcon sx={{ fontSize: 17 }} /></ToolBtn>
+        <ToolBtn onClick={() => editor.chain().focus().redo().run()} title="やり直し"><RedoIcon sx={{ fontSize: 17 }} /></ToolBtn>
         <Sep />
 
         {/* テキスト装飾 */}
-        <ToolBtn onClick={() => editor.chain().focus().toggleBold().run()} active={editor.isActive("bold")} title="太字"><FormatBoldIcon sx={{ fontSize: 15 }} /></ToolBtn>
-        <ToolBtn onClick={() => editor.chain().focus().toggleItalic().run()} active={editor.isActive("italic")} title="斜体"><FormatItalicIcon sx={{ fontSize: 15 }} /></ToolBtn>
-        <ToolBtn onClick={() => editor.chain().focus().toggleUnderline().run()} active={editor.isActive("underline")} title="下線"><FormatUnderlinedIcon sx={{ fontSize: 15 }} /></ToolBtn>
-        <ToolBtn onClick={() => editor.chain().focus().toggleStrike().run()} active={editor.isActive("strike")} title="取り消し線"><FormatStrikethroughIcon sx={{ fontSize: 15 }} /></ToolBtn>
+        <ToolBtn onClick={() => editor.chain().focus().toggleBold().run()} active={editor.isActive("bold")} title="太字"><FormatBoldIcon sx={{ fontSize: 17 }} /></ToolBtn>
+        <ToolBtn onClick={() => editor.chain().focus().toggleItalic().run()} active={editor.isActive("italic")} title="斜体"><FormatItalicIcon sx={{ fontSize: 17 }} /></ToolBtn>
+        <ToolBtn onClick={() => editor.chain().focus().toggleUnderline().run()} active={editor.isActive("underline")} title="下線"><FormatUnderlinedIcon sx={{ fontSize: 17 }} /></ToolBtn>
+        <ToolBtn onClick={() => editor.chain().focus().toggleStrike().run()} active={editor.isActive("strike")} title="取り消し線"><FormatStrikethroughIcon sx={{ fontSize: 17 }} /></ToolBtn>
         <ToolBtn onClick={() => editor.chain().focus().toggleHighlight().run()} active={editor.isActive("highlight")} title="ハイライト">
-          <span className="text-[11px] font-bold bg-yellow-200 dark:bg-yellow-800 px-0.5 rounded">蛍</span>
+          <span className="text-xs font-bold bg-yellow-200 dark:bg-yellow-800 px-0.5 rounded">蛍</span>
         </ToolBtn>
         <Sep />
 
         {/* 文字色 */}
         <label className="relative cursor-pointer p-0.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center" title="文字色">
-          <span className="text-[11px] font-bold text-gray-600 dark:text-gray-300">A</span>
+          <span className="text-xs font-bold text-gray-600 dark:text-gray-300">A</span>
           <input
             type="color"
             className="absolute opacity-0 w-0 h-0"
@@ -205,7 +205,7 @@ export default function DraggableRichText({ data, onUpdate, onRemove, onBringToF
             if (v) (editor.chain().focus() as any).setFontSize(v).run();
             else (editor.chain().focus() as any).unsetFontSize().run();
           }}
-          className="text-[11px] px-0.5 py-0 rounded border border-gray-200 dark:border-gray-600 bg-transparent text-gray-600 dark:text-gray-300 cursor-pointer"
+          className="text-xs px-0.5 py-0 rounded border border-gray-200 dark:border-gray-600 bg-transparent text-gray-600 dark:text-gray-300 cursor-pointer"
           title="フォントサイズ"
         >
           <option value="">標準</option>
@@ -221,7 +221,7 @@ export default function DraggableRichText({ data, onUpdate, onRemove, onBringToF
             active={editor.isActive("heading", { level })}
             title={`見出し ${level}`}
           >
-            <span className="text-[10px] font-bold leading-none">H{level}</span>
+            <span className="text-xs font-bold leading-none">H{level}</span>
           </ToolBtn>
         ))}
         <ToolBtn
@@ -229,19 +229,19 @@ export default function DraggableRichText({ data, onUpdate, onRemove, onBringToF
           active={editor.isActive("paragraph")}
           title="本文"
         >
-          <span className="text-[10px] leading-none">P</span>
+          <span className="text-xs leading-none">P</span>
         </ToolBtn>
         <Sep />
 
         {/* リスト */}
-        <ToolBtn onClick={() => editor.chain().focus().toggleBulletList().run()} active={editor.isActive("bulletList")} title="箇条書き"><FormatListBulletedIcon sx={{ fontSize: 15 }} /></ToolBtn>
-        <ToolBtn onClick={() => editor.chain().focus().toggleOrderedList().run()} active={editor.isActive("orderedList")} title="番号リスト"><FormatListNumberedIcon sx={{ fontSize: 15 }} /></ToolBtn>
+        <ToolBtn onClick={() => editor.chain().focus().toggleBulletList().run()} active={editor.isActive("bulletList")} title="箇条書き"><FormatListBulletedIcon sx={{ fontSize: 17 }} /></ToolBtn>
+        <ToolBtn onClick={() => editor.chain().focus().toggleOrderedList().run()} active={editor.isActive("orderedList")} title="番号リスト"><FormatListNumberedIcon sx={{ fontSize: 17 }} /></ToolBtn>
         <Sep />
 
         {/* 配置 */}
-        <ToolBtn onClick={() => editor.chain().focus().setTextAlign("left").run()} active={editor.isActive({ textAlign: "left" })} title="左揃え"><FormatAlignLeftIcon sx={{ fontSize: 15 }} /></ToolBtn>
-        <ToolBtn onClick={() => editor.chain().focus().setTextAlign("center").run()} active={editor.isActive({ textAlign: "center" })} title="中央揃え"><FormatAlignCenterIcon sx={{ fontSize: 15 }} /></ToolBtn>
-        <ToolBtn onClick={() => editor.chain().focus().setTextAlign("right").run()} active={editor.isActive({ textAlign: "right" })} title="右揃え"><FormatAlignRightIcon sx={{ fontSize: 15 }} /></ToolBtn>
+        <ToolBtn onClick={() => editor.chain().focus().setTextAlign("left").run()} active={editor.isActive({ textAlign: "left" })} title="左揃え"><FormatAlignLeftIcon sx={{ fontSize: 17 }} /></ToolBtn>
+        <ToolBtn onClick={() => editor.chain().focus().setTextAlign("center").run()} active={editor.isActive({ textAlign: "center" })} title="中央揃え"><FormatAlignCenterIcon sx={{ fontSize: 17 }} /></ToolBtn>
+        <ToolBtn onClick={() => editor.chain().focus().setTextAlign("right").run()} active={editor.isActive({ textAlign: "right" })} title="右揃え"><FormatAlignRightIcon sx={{ fontSize: 17 }} /></ToolBtn>
         <Sep />
 
         {/* テーブル */}
@@ -250,7 +250,7 @@ export default function DraggableRichText({ data, onUpdate, onRemove, onBringToF
           active={false}
           title="テーブルを挿入"
         >
-          <TableChartIcon sx={{ fontSize: 15 }} />
+          <TableChartIcon sx={{ fontSize: 17 }} />
         </ToolBtn>
 
         {/* テーブル内の操作（カーソルがテーブル内にある時のみ表示） */}
@@ -258,19 +258,19 @@ export default function DraggableRichText({ data, onUpdate, onRemove, onBringToF
           <>
             <Sep />
             <ToolBtn onClick={() => editor.chain().focus().addRowAfter().run()} title="行を追加">
-              <span className="text-[10px] leading-none font-bold">+行</span>
+              <span className="text-xs leading-none font-bold">+行</span>
             </ToolBtn>
             <ToolBtn onClick={() => editor.chain().focus().addColumnAfter().run()} title="列を追加">
-              <span className="text-[10px] leading-none font-bold">+列</span>
+              <span className="text-xs leading-none font-bold">+列</span>
             </ToolBtn>
             <ToolBtn onClick={() => editor.chain().focus().deleteRow().run()} title="行を削除">
-              <span className="text-[10px] leading-none text-red-500">−行</span>
+              <span className="text-xs leading-none text-red-500">−行</span>
             </ToolBtn>
             <ToolBtn onClick={() => editor.chain().focus().deleteColumn().run()} title="列を削除">
-              <span className="text-[10px] leading-none text-red-500">−列</span>
+              <span className="text-xs leading-none text-red-500">−列</span>
             </ToolBtn>
             <ToolBtn onClick={() => editor.chain().focus().deleteTable().run()} title="テーブルを削除">
-              <span className="text-[10px] leading-none text-red-500">⌫表</span>
+              <span className="text-xs leading-none text-red-500">⌫表</span>
             </ToolBtn>
           </>
         )}

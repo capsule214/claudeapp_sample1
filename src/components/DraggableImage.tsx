@@ -144,14 +144,14 @@ export default function DraggableImage({ image, onUpdate, onRemove, onBringToFro
             ].join(" ")}
           >
             {uploading ? (
-              <span className="text-xs text-gray-400">アップロード中...</span>
+              <span className="text-sm text-gray-400">アップロード中...</span>
             ) : (
               <>
                 <PhotoIcon className="w-8 h-8 text-gray-300" />
-                <span className="text-xs text-gray-400 text-center leading-tight px-2">
+                <span className="text-sm text-gray-400 text-center leading-tight px-2">
                   画像をドロップ
                 </span>
-                <label className="text-xs text-blue-500 hover:underline cursor-pointer">
+                <label className="text-sm text-blue-500 hover:underline cursor-pointer">
                   またはファイルを選択
                   <input
                     type="file"

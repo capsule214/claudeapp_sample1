@@ -73,6 +73,7 @@ export default function DraggableRichText({ data, onUpdate, onRemove, onBringToF
   const dragOffset = useRef({ x: 0, y: 0 });
   const resizeStart = useRef({ mouseX: 0, mouseY: 0, width: 0, height: 0 });
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const editorWrapRef = useRef<HTMLDivElement>(null);
 
   const scheduleUpdate = useCallback((content: string) => {
     if (saveTimer.current) clearTimeout(saveTimer.current);
@@ -81,6 +82,20 @@ export default function DraggableRichText({ data, onUpdate, onRemove, onBringToF
 
   useEffect(() => () => {
     if (saveTimer.current) clearTimeout(saveTimer.current);
+  }, []);
+
+  useEffect(() => {
+    const el = editorWrapRef.current;
+    if (!el) return;
+    const block = (e: DragEvent) => {
+      if (e.dataTransfer?.types.includes("application/x-link-drag")) e.stopPropagation();
+    };
+    el.addEventListener("dragover", block, true);
+    el.addEventListener("drop", block, true);
+    return () => {
+      el.removeEventListener("dragover", block, true);
+      el.removeEventListener("drop", block, true);
+    };
   }, []);
 
   const editor = useEditor({
@@ -278,6 +293,7 @@ export default function DraggableRichText({ data, onUpdate, onRemove, onBringToF
 
       {/* エディタ本体 */}
       <div
+        ref={editorWrapRef}
         data-nodrag=""
         className="flex-1 overflow-hidden bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-100"
         onMouseDown={(e) => e.stopPropagation()}

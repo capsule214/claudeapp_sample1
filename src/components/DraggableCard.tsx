@@ -67,7 +67,7 @@ export default function DraggableCard({ card, onUpdate, onRemove, onCopy, onMove
   const [palettePos, setPalettePos] = useState({ top: 0, left: 0 });
   const paletteButtonRef = useRef<HTMLButtonElement>(null);
   const [dialog, setDialog] = useState<DialogState>(EMPTY_DIALOG);
-  const [draggingLinkIdx, setDraggingLinkIdx] = useState<number | null>(null);
+  const [draggingLinkId, setDraggingLinkId] = useState<string | null>(null);
   const [dragOverLinkIdx, setDragOverLinkIdx] = useState<number | null>(null);
   const [externalDragOver, setExternalDragOver] = useState(false);
 
@@ -76,7 +76,7 @@ export default function DraggableCard({ card, onUpdate, onRemove, onCopy, onMove
   const dragSrcIdx = useRef<number | null>(null);
 
   const resetDragState = () => {
-    setDraggingLinkIdx(null);
+    setDraggingLinkId(null);
     setDragOverLinkIdx(null);
     setExternalDragOver(false);
     dragSrcIdx.current = null;
@@ -129,7 +129,7 @@ export default function DraggableCard({ card, onUpdate, onRemove, onCopy, onMove
     e.dataTransfer.setData(DRAG_KEY, JSON.stringify({ sourceCardId: card.id, linkId: card.links[idx].id }));
     e.dataTransfer.effectAllowed = "move";
     dragSrcIdx.current = idx;
-    setDraggingLinkIdx(idx);
+    setDraggingLinkId(card.links[idx].id);
   };
 
   const onLinkRowDragOver = (e: React.DragEvent, idx: number) => {
@@ -300,8 +300,8 @@ export default function DraggableCard({ card, onUpdate, onRemove, onCopy, onMove
                 onDragEnd={onLinkDragEnd}
                 className={[
                   "flex items-center gap-1 px-1 py-1 rounded group transition-colors",
-                  draggingLinkIdx === idx ? "opacity-30" : "",
-                  dragOverLinkIdx === idx && draggingLinkIdx !== idx
+                  draggingLinkId === link.id ? "opacity-30" : "",
+                  dragOverLinkIdx === idx && draggingLinkId !== link.id
                     ? "bg-blue-100 border border-blue-300"
                     : "",
                 ].join(" ")}

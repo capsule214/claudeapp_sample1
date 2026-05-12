@@ -71,6 +71,8 @@ export default function DraggableCard({ card, onUpdate, onRemove, onCopy, onMove
   const [dragOverLinkIdx, setDragOverLinkIdx] = useState<number | null>(null);
   const [externalDragOver, setExternalDragOver] = useState(false);
 
+  const [dragPos, setDragPos] = useState<{ x: number; y: number } | null>(null);
+  const [resizeSize, setResizeSize] = useState<{ width: number; height: number } | null>(null);
   const cardDragOffset = useRef({ x: 0, y: 0 });
   const resizeStart = useRef({ mouseX: 0, mouseY: 0, width: 0, height: 0 });
   const dragSrcIdx = useRef<number | null>(null);
@@ -90,14 +92,20 @@ export default function DraggableCard({ card, onUpdate, onRemove, onCopy, onMove
     cardDragOffset.current = { x: e.clientX - card.x, y: e.clientY - card.y };
 
     const onMove = (ev: MouseEvent) => {
-      onUpdate(card.id, {
+      setDragPos({
         x: snap(ev.clientX - cardDragOffset.current.x),
         y: snap(ev.clientY - cardDragOffset.current.y),
       });
     };
-    const onUp = () => {
+    const onUp = (ev: MouseEvent) => {
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", onUp);
+      const finalPos = {
+        x: snap(ev.clientX - cardDragOffset.current.x),
+        y: snap(ev.clientY - cardDragOffset.current.y),
+      };
+      setDragPos(null);
+      onUpdate(card.id, finalPos);
     };
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", onUp);
@@ -111,14 +119,20 @@ export default function DraggableCard({ card, onUpdate, onRemove, onCopy, onMove
     resizeStart.current = { mouseX: e.clientX, mouseY: e.clientY, width: card.width, height: card.height };
 
     const onMove = (ev: MouseEvent) => {
-      onUpdate(card.id, {
+      setResizeSize({
         width: Math.max(200, snap(resizeStart.current.width + ev.clientX - resizeStart.current.mouseX)),
         height: Math.max(140, snap(resizeStart.current.height + ev.clientY - resizeStart.current.mouseY)),
       });
     };
-    const onUp = () => {
+    const onUp = (ev: MouseEvent) => {
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", onUp);
+      const finalSize = {
+        width: Math.max(200, snap(resizeStart.current.width + ev.clientX - resizeStart.current.mouseX)),
+        height: Math.max(140, snap(resizeStart.current.height + ev.clientY - resizeStart.current.mouseY)),
+      };
+      setResizeSize(null);
+      onUpdate(card.id, finalSize);
     };
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", onUp);
@@ -206,10 +220,15 @@ export default function DraggableCard({ card, onUpdate, onRemove, onCopy, onMove
     closeDialog();
   };
 
+  const displayX = dragPos?.x ?? card.x;
+  const displayY = dragPos?.y ?? card.y;
+  const displayWidth = resizeSize?.width ?? card.width;
+  const displayHeight = resizeSize?.height ?? card.height;
+
   return (
     <>
       <div
-        style={{ left: card.x, top: card.y, width: card.width, height: card.height, zIndex: card.zIndex }}
+        style={{ left: displayX, top: displayY, width: displayWidth, height: displayHeight, zIndex: card.zIndex }}
         className="absolute flex flex-col bg-white rounded-xl shadow-lg border border-gray-200 select-none overflow-hidden"
         onMouseDown={onCardMouseDown}
       >

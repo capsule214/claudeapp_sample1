@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useCallback, useEffect, ReactNode } from "react";
+import { useRef, useState, useCallback, useEffect, ReactNode } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { TextStyle, Color, FontSize } from "@tiptap/extension-text-style";
@@ -70,6 +70,8 @@ function Sep() {
 }
 
 export default function DraggableRichText({ data, onUpdate, onRemove, onBringToFront }: Props) {
+  const [dragPos, setDragPos] = useState<{ x: number; y: number } | null>(null);
+  const [resizeSize, setResizeSize] = useState<{ width: number; height: number } | null>(null);
   const dragOffset = useRef({ x: 0, y: 0 });
   const resizeStart = useRef({ mouseX: 0, mouseY: 0, width: 0, height: 0 });
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -127,9 +129,15 @@ export default function DraggableRichText({ data, onUpdate, onRemove, onBringToF
     onBringToFront(data.id);
     dragOffset.current = { x: e.clientX - data.x, y: e.clientY - data.y };
     const onMove = (ev: MouseEvent) => {
-      onUpdate(data.id, { x: snap(ev.clientX - dragOffset.current.x), y: snap(ev.clientY - dragOffset.current.y) });
+      setDragPos({ x: snap(ev.clientX - dragOffset.current.x), y: snap(ev.clientY - dragOffset.current.y) });
     };
-    const onUp = () => { window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); };
+    const onUp = (ev: MouseEvent) => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+      const finalPos = { x: snap(ev.clientX - dragOffset.current.x), y: snap(ev.clientY - dragOffset.current.y) };
+      setDragPos(null);
+      onUpdate(data.id, finalPos);
+    };
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", onUp);
   };
@@ -140,12 +148,21 @@ export default function DraggableRichText({ data, onUpdate, onRemove, onBringToF
     onBringToFront(data.id);
     resizeStart.current = { mouseX: e.clientX, mouseY: e.clientY, width: data.width, height: data.height };
     const onMove = (ev: MouseEvent) => {
-      onUpdate(data.id, {
+      setResizeSize({
         width: Math.max(260, snap(resizeStart.current.width + ev.clientX - resizeStart.current.mouseX)),
         height: Math.max(180, snap(resizeStart.current.height + ev.clientY - resizeStart.current.mouseY)),
       });
     };
-    const onUp = () => { window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); };
+    const onUp = (ev: MouseEvent) => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+      const finalSize = {
+        width: Math.max(260, snap(resizeStart.current.width + ev.clientX - resizeStart.current.mouseX)),
+        height: Math.max(180, snap(resizeStart.current.height + ev.clientY - resizeStart.current.mouseY)),
+      };
+      setResizeSize(null);
+      onUpdate(data.id, finalSize);
+    };
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", onUp);
   };
@@ -157,9 +174,14 @@ export default function DraggableRichText({ data, onUpdate, onRemove, onBringToF
   // 現在のフォントサイズ
   const currentSize = editor.getAttributes("textStyle").fontSize ?? "";
 
+  const displayX = dragPos?.x ?? data.x;
+  const displayY = dragPos?.y ?? data.y;
+  const displayWidth = resizeSize?.width ?? data.width;
+  const displayHeight = resizeSize?.height ?? data.height;
+
   return (
     <div
-      style={{ left: data.x, top: data.y, width: data.width, height: data.height, zIndex: data.zIndex }}
+      style={{ left: displayX, top: displayY, width: displayWidth, height: displayHeight, zIndex: data.zIndex }}
       className="absolute flex flex-col select-none rounded-xl shadow-lg overflow-hidden border border-gray-200 dark:border-gray-700"
       onMouseDown={onMouseDown}
     >

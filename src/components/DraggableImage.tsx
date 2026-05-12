@@ -25,6 +25,8 @@ const snap = (v: number) => Math.round(v / 10) * 10;
 export default function DraggableImage({ image, onUpdate, onRemove, onBringToFront }: Props) {
   const [dragOver, setDragOver] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [dragPos, setDragPos] = useState<{ x: number; y: number } | null>(null);
+  const [resizeSize, setResizeSize] = useState<{ width: number; height: number } | null>(null);
   const dragOffset = useRef({ x: 0, y: 0 });
   const resizeStart = useRef({ mouseX: 0, mouseY: 0, width: 0, height: 0 });
 
@@ -35,14 +37,20 @@ export default function DraggableImage({ image, onUpdate, onRemove, onBringToFro
     dragOffset.current = { x: e.clientX - image.x, y: e.clientY - image.y };
 
     const onMove = (ev: MouseEvent) => {
-      onUpdate(image.id, {
+      setDragPos({
         x: snap(ev.clientX - dragOffset.current.x),
         y: snap(ev.clientY - dragOffset.current.y),
       });
     };
-    const onUp = () => {
+    const onUp = (ev: MouseEvent) => {
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", onUp);
+      const finalPos = {
+        x: snap(ev.clientX - dragOffset.current.x),
+        y: snap(ev.clientY - dragOffset.current.y),
+      };
+      setDragPos(null);
+      onUpdate(image.id, finalPos);
     };
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", onUp);
@@ -55,14 +63,20 @@ export default function DraggableImage({ image, onUpdate, onRemove, onBringToFro
     resizeStart.current = { mouseX: e.clientX, mouseY: e.clientY, width: image.width, height: image.height };
 
     const onMove = (ev: MouseEvent) => {
-      onUpdate(image.id, {
+      setResizeSize({
         width: Math.max(80, snap(resizeStart.current.width + ev.clientX - resizeStart.current.mouseX)),
         height: Math.max(80, snap(resizeStart.current.height + ev.clientY - resizeStart.current.mouseY)),
       });
     };
-    const onUp = () => {
+    const onUp = (ev: MouseEvent) => {
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", onUp);
+      const finalSize = {
+        width: Math.max(80, snap(resizeStart.current.width + ev.clientX - resizeStart.current.mouseX)),
+        height: Math.max(80, snap(resizeStart.current.height + ev.clientY - resizeStart.current.mouseY)),
+      };
+      setResizeSize(null);
+      onUpdate(image.id, finalSize);
     };
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", onUp);
@@ -99,13 +113,18 @@ export default function DraggableImage({ image, onUpdate, onRemove, onBringToFro
 
   const hasImage = Boolean(image.url);
 
+  const displayX = dragPos?.x ?? image.x;
+  const displayY = dragPos?.y ?? image.y;
+  const displayWidth = resizeSize?.width ?? image.width;
+  const displayHeight = resizeSize?.height ?? image.height;
+
   return (
     <div
       style={{
-        left: image.x,
-        top: image.y,
-        width: image.width,
-        height: image.height,
+        left: displayX,
+        top: displayY,
+        width: displayWidth,
+        height: displayHeight,
         zIndex: image.zIndex,
       }}
       className="absolute select-none"

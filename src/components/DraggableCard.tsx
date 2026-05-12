@@ -67,6 +67,7 @@ export default function DraggableCard({ card, onUpdate, onRemove, onCopy, onMove
   const [palettePos, setPalettePos] = useState({ top: 0, left: 0 });
   const paletteButtonRef = useRef<HTMLButtonElement>(null);
   const [dialog, setDialog] = useState<DialogState>(EMPTY_DIALOG);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [draggingLinkId, setDraggingLinkId] = useState<string | null>(null);
   const [dragOverLinkIdx, setDragOverLinkIdx] = useState<number | null>(null);
   const [externalDragOver, setExternalDragOver] = useState(false);
@@ -286,7 +287,7 @@ export default function DraggableCard({ card, onUpdate, onRemove, onCopy, onMove
             <DocumentDuplicateIcon className="w-4 h-4" />
           </button>
           <button
-            onClick={() => onRemove(card.id)}
+            onClick={() => setConfirmDelete(true)}
             className="text-gray-500 hover:text-red-400 flex-shrink-0"
             title="カードを削除"
           >
@@ -399,6 +400,32 @@ export default function DraggableCard({ card, onUpdate, onRemove, onCopy, onMove
             ))}
           </div>
         </>
+      )}
+
+      {confirmDelete && (
+        <div
+          className="fixed inset-0 bg-black/40 flex items-center justify-center z-[9999]"
+          onClick={e => { if (e.target === e.currentTarget) setConfirmDelete(false); }}
+        >
+          <div className="bg-white rounded-xl shadow-xl p-6 w-72 space-y-4">
+            <h2 className="text-base font-semibold text-gray-800">カードを削除しますか？</h2>
+            <p className="text-sm text-gray-500">この操作は元に戻せません。</p>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setConfirmDelete(false)}
+                className="flex items-center gap-1 text-sm px-3 py-1.5 rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors"
+              >
+                <XMarkIcon className="w-4 h-4" /> キャンセル
+              </button>
+              <button
+                onClick={() => { onRemove(card.id); setConfirmDelete(false); }}
+                className="text-sm px-3 py-1.5 rounded-lg bg-red-500 hover:bg-red-600 text-white transition-colors"
+              >
+                削除する
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {dialog.open && (

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import {
   AppBar,
   Box,
@@ -16,6 +17,7 @@ import AddPhotoAlternateIcon from "@mui/icons-material/AddPhotoAlternate";
 import TextFieldsIcon from "@mui/icons-material/TextFields";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
 import LightModeIcon from "@mui/icons-material/LightMode";
+import LogoutIcon from "@mui/icons-material/Logout";
 import Link from "next/link";
 import DraggableCard, { CardData } from "@/components/DraggableCard";
 import DraggableImage, { ImageData } from "@/components/DraggableImage";
@@ -23,11 +25,17 @@ import DraggableRichText, { RichTextData } from "@/components/DraggableRichText"
 import { useColorMode } from "@/components/AppThemeProvider";
 
 export default function MemoPage() {
+  const router = useRouter();
   const [cards, setCards] = useState<CardData[]>([]);
   const [images, setImages] = useState<ImageData[]>([]);
   const [richTexts, setRichTexts] = useState<RichTextData[]>([]);
   const zCounter = useRef(1);
   const { mode, toggle } = useColorMode();
+
+  const handleLogout = useCallback(async () => {
+    await fetch("/api/auth/logout", { method: "POST" });
+    router.push("/login");
+  }, [router]);
 
   useEffect(() => {
     const maxZ = (arr: { zIndex: number }[]) =>
@@ -263,6 +271,12 @@ export default function MemoPage() {
           <Typography variant="subtitle1" sx={{ flexGrow: 1, fontWeight: 600 }}>
             メモボード
           </Typography>
+
+          <Tooltip title="ログアウト">
+            <IconButton onClick={handleLogout} size="small" color="inherit">
+              <LogoutIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
 
           <Tooltip title={mode === "dark" ? "ライトモードに切り替え" : "ダークモードに切り替え"}>
             <IconButton onClick={toggle} size="small" color="inherit">

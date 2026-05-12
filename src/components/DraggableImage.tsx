@@ -18,11 +18,12 @@ interface Props {
   onUpdate: (id: string, updates: Partial<ImageData>) => void;
   onRemove: (id: string) => void;
   onBringToFront: (id: string) => void;
+  onError: (msg: string) => void;
 }
 
 const snap = (v: number) => Math.round(v / 10) * 10;
 
-export default function DraggableImage({ image, onUpdate, onRemove, onBringToFront }: Props) {
+export default function DraggableImage({ image, onUpdate, onRemove, onBringToFront, onError }: Props) {
   const [dragOver, setDragOver] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [dragPos, setDragPos] = useState<{ x: number; y: number } | null>(null);
@@ -104,8 +105,11 @@ export default function DraggableImage({ image, onUpdate, onRemove, onBringToFro
       fd.append("file", file);
       fd.append("id", image.id);
       const res = await fetch("/api/images/upload", { method: "POST", body: fd });
-      const { url } = await res.json();
-      onUpdate(image.id, { url });
+      const json = await res.json() as { url?: string; error?: string };
+      if (!res.ok) throw new Error(json.error ?? "アップロードできませんでした。");
+      onUpdate(image.id, { url: json.url! });
+    } catch (e) {
+      onError(e instanceof Error ? e.message : "アップロードできませんでした。");
     } finally {
       setUploading(false);
     }

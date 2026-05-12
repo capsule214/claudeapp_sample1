@@ -23,14 +23,22 @@ import DraggableCard, { CardData } from "@/components/DraggableCard";
 import DraggableImage, { ImageData } from "@/components/DraggableImage";
 import DraggableRichText, { RichTextData } from "@/components/DraggableRichText";
 import { useColorMode } from "@/components/AppThemeProvider";
+import Toast from "@/components/Toast";
+
+const UPDATE_ERROR = "更新できませんでした。更新前のデータで表示します。";
+const DELETE_ERROR = "削除できませんでした。";
+const ADD_ERROR = "追加できませんでした。";
 
 export default function MemoPage() {
   const router = useRouter();
   const [cards, setCards] = useState<CardData[]>([]);
   const [images, setImages] = useState<ImageData[]>([]);
   const [richTexts, setRichTexts] = useState<RichTextData[]>([]);
+  const [toast, setToast] = useState<string | null>(null);
   const zCounter = useRef(1);
   const { mode, toggle } = useColorMode();
+
+  const showToast = useCallback((msg: string) => setToast(msg), []);
 
   const handleLogout = useCallback(async () => {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -46,22 +54,27 @@ export default function MemoPage() {
       .then((data: CardData[]) => {
         setCards(data);
         zCounter.current = Math.max(zCounter.current, maxZ(data));
-      });
+      })
+      .catch(() => showToast("カードの読み込みに失敗しました。"));
 
     fetch("/api/images")
       .then((r) => r.json())
       .then((data: ImageData[]) => {
         setImages(data);
         zCounter.current = Math.max(zCounter.current, maxZ(data));
-      });
+      })
+      .catch(() => showToast("画像の読み込みに失敗しました。"));
 
     fetch("/api/rich-texts")
       .then((r) => r.json())
       .then((data: RichTextData[]) => {
         setRichTexts(data);
         zCounter.current = Math.max(zCounter.current, maxZ(data));
-      });
-  }, []);
+      })
+      .catch(() => showToast("テキストの読み込みに失敗しました。"));
+  }, [showToast]);
+
+  // ---- Cards ----
 
   const addCard = useCallback(() => {
     const zIndex = ++zCounter.current;
@@ -81,11 +94,17 @@ export default function MemoPage() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(card),
-    });
-  }, []);
+    })
+      .then((res) => { if (!res.ok) throw new Error(); })
+      .catch(() => {
+        setCards((prev) => prev.filter((c) => c.id !== card.id));
+        showToast(ADD_ERROR);
+      });
+  }, [showToast]);
 
   const updateCard = useCallback((id: string, updates: Partial<CardData>) => {
     setCards((prev) => {
+      const snapshot = prev;
       const next = prev.map((c) => (c.id === id ? { ...c, ...updates } : c));
       const updated = next.find((c) => c.id === id);
       if (updated) {
@@ -93,16 +112,29 @@ export default function MemoPage() {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(updated),
-        });
+        })
+          .then((res) => { if (!res.ok) throw new Error(); })
+          .catch(() => {
+            setCards(snapshot);
+            showToast(UPDATE_ERROR);
+          });
       }
       return next;
     });
-  }, []);
+  }, [showToast]);
 
   const removeCard = useCallback((id: string) => {
-    setCards((prev) => prev.filter((c) => c.id !== id));
-    fetch(`/api/cards/${id}`, { method: "DELETE" });
-  }, []);
+    setCards((prev) => {
+      const snapshot = prev;
+      fetch(`/api/cards/${id}`, { method: "DELETE" })
+        .then((res) => { if (!res.ok) throw new Error(); })
+        .catch(() => {
+          setCards(snapshot);
+          showToast(DELETE_ERROR);
+        });
+      return prev.filter((c) => c.id !== id);
+    });
+  }, [showToast]);
 
   const copyCard = useCallback((id: string) => {
     setCards((prev) => {
@@ -121,16 +153,18 @@ export default function MemoPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(newCard),
-      });
+      })
+        .then((res) => { if (!res.ok) throw new Error(); })
+        .catch(() => {
+          setCards((prev) => prev.filter((c) => c.id !== newCard.id));
+          showToast(ADD_ERROR);
+        });
       return [...prev, newCard];
     });
-  }, []);
+  }, [showToast]);
 
   const bringToFront = useCallback(
-    (id: string) => {
-      const zIndex = ++zCounter.current;
-      updateCard(id, { zIndex });
-    },
+    (id: string) => updateCard(id, { zIndex: ++zCounter.current }),
     [updateCard]
   );
 
@@ -140,6 +174,7 @@ export default function MemoPage() {
         const fromCard = prev.find((c) => c.id === fromCardId);
         const link = fromCard?.links.find((l) => l.id === linkId);
         if (!link) return prev;
+        const snapshot = prev;
         const next = prev.map((card) => {
           if (card.id === fromCardId)
             return { ...card, links: card.links.filter((l) => l.id !== linkId) };
@@ -157,14 +192,21 @@ export default function MemoPage() {
               method: "PUT",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify(card),
-            });
+            })
+              .then((res) => { if (!res.ok) throw new Error(); })
+              .catch(() => {
+                setCards(snapshot);
+                showToast(UPDATE_ERROR);
+              });
           }
         });
         return next;
       });
     },
-    []
+    [showToast]
   );
+
+  // ---- Images ----
 
   const addImage = useCallback(() => {
     const zIndex = ++zCounter.current;
@@ -182,11 +224,17 @@ export default function MemoPage() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(img),
-    });
-  }, []);
+    })
+      .then((res) => { if (!res.ok) throw new Error(); })
+      .catch(() => {
+        setImages((prev) => prev.filter((i) => i.id !== img.id));
+        showToast(ADD_ERROR);
+      });
+  }, [showToast]);
 
   const updateImage = useCallback((id: string, updates: Partial<ImageData>) => {
     setImages((prev) => {
+      const snapshot = prev;
       const next = prev.map((img) => (img.id === id ? { ...img, ...updates } : img));
       const updated = next.find((img) => img.id === id);
       if (updated) {
@@ -194,21 +242,36 @@ export default function MemoPage() {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(updated),
-        });
+        })
+          .then((res) => { if (!res.ok) throw new Error(); })
+          .catch(() => {
+            setImages(snapshot);
+            showToast(UPDATE_ERROR);
+          });
       }
       return next;
     });
-  }, []);
+  }, [showToast]);
 
   const removeImage = useCallback((id: string) => {
-    setImages((prev) => prev.filter((img) => img.id !== id));
-    fetch(`/api/images/${id}`, { method: "DELETE" });
-  }, []);
+    setImages((prev) => {
+      const snapshot = prev;
+      fetch(`/api/images/${id}`, { method: "DELETE" })
+        .then((res) => { if (!res.ok) throw new Error(); })
+        .catch(() => {
+          setImages(snapshot);
+          showToast(DELETE_ERROR);
+        });
+      return prev.filter((img) => img.id !== id);
+    });
+  }, [showToast]);
 
   const bringImageToFront = useCallback(
     (id: string) => updateImage(id, { zIndex: ++zCounter.current }),
     [updateImage]
   );
+
+  // ---- RichTexts ----
 
   const addRichText = useCallback(() => {
     const zIndex = ++zCounter.current;
@@ -226,11 +289,17 @@ export default function MemoPage() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(rt),
-    });
-  }, []);
+    })
+      .then((res) => { if (!res.ok) throw new Error(); })
+      .catch(() => {
+        setRichTexts((prev) => prev.filter((r) => r.id !== rt.id));
+        showToast(ADD_ERROR);
+      });
+  }, [showToast]);
 
   const updateRichText = useCallback((id: string, updates: Partial<RichTextData>) => {
     setRichTexts((prev) => {
+      const snapshot = prev;
       const next = prev.map((rt) => (rt.id === id ? { ...rt, ...updates } : rt));
       const updated = next.find((rt) => rt.id === id);
       if (updated) {
@@ -238,16 +307,29 @@ export default function MemoPage() {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(updated),
-        });
+        })
+          .then((res) => { if (!res.ok) throw new Error(); })
+          .catch(() => {
+            setRichTexts(snapshot);
+            showToast(UPDATE_ERROR);
+          });
       }
       return next;
     });
-  }, []);
+  }, [showToast]);
 
   const removeRichText = useCallback((id: string) => {
-    setRichTexts((prev) => prev.filter((rt) => rt.id !== id));
-    fetch(`/api/rich-texts/${id}`, { method: "DELETE" });
-  }, []);
+    setRichTexts((prev) => {
+      const snapshot = prev;
+      fetch(`/api/rich-texts/${id}`, { method: "DELETE" })
+        .then((res) => { if (!res.ok) throw new Error(); })
+        .catch(() => {
+          setRichTexts(snapshot);
+          showToast(DELETE_ERROR);
+        });
+      return prev.filter((rt) => rt.id !== id);
+    });
+  }, [showToast]);
 
   const bringRichTextToFront = useCallback(
     (id: string) => updateRichText(id, { zIndex: ++zCounter.current }),
@@ -348,6 +430,7 @@ export default function MemoPage() {
             onUpdate={updateImage}
             onRemove={removeImage}
             onBringToFront={bringImageToFront}
+            onError={showToast}
           />
         ))}
         {cards.map((card) => (
@@ -362,6 +445,8 @@ export default function MemoPage() {
           />
         ))}
       </Box>
+
+      {toast && <Toast message={toast} onClose={() => setToast(null)} />}
     </Box>
   );
 }

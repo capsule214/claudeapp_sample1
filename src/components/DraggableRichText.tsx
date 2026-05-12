@@ -239,8 +239,8 @@ export default function DraggableRichText({ data, onUpdate, onRemove, onBringToF
           value={currentSize}
           onChange={(e) => {
             const v = e.target.value;
-            if (v) (editor.chain().focus() as any).setFontSize(v).run();
-            else (editor.chain().focus() as any).unsetFontSize().run();
+            if (v) editor.chain().focus().setFontSize(v).run();
+            else editor.chain().focus().unsetFontSize().run();
           }}
           className="text-xs px-0.5 py-0 rounded border border-gray-200 dark:border-gray-600 bg-transparent text-gray-600 dark:text-gray-300 cursor-pointer"
           title="フォントサイズ"
